@@ -329,7 +329,21 @@ export default class FirstConsistentlyInteractiveDetector {
   get _incompleteRequestStarts() {
     return [...this._incompleteJSInitiatedRequestStartTimes.values()];
   }
-
+    
+    
+/**
+   * chrome.loadTimes() is deprecated.
+   * Here is an implementation to get first paint time using
+   * standardized paint api.
+   */
+  _getFirstPaintTime() {
+      if (window.PerformancePaintTiming) {
+        const fpEntry = performance.getEntriesByType('paint')[0];
+        return (fpEntry.startTime + performance.timeOrigin) / 1000;
+      }
+      return 0
+    }
+    
   /**
    * Checks to see if a first consistently interactive time has been found.
    * If one has been found, the promise resolver is invoked with the time. If
@@ -343,9 +357,8 @@ export default class FirstConsistentlyInteractiveDetector {
         firstConsistentlyInteractiveCore.computeLastKnownNetwork2Busy(
             this._incompleteRequestStarts, this._networkRequests);
 
-    // First paint is not available in non-chrome browsers at the moment.
-    const firstPaint = window.chrome && window.chrome.loadTimes ?
-        (window.chrome.loadTimes().firstPaintTime * 1000 - navigationStart) : 0;
+    const firstPaintTime = getFirstPaintTime() || 0
+    const firstPaint =  firstPaintTime ? firstPaintTime * 1000 - navigationStart : 0
 
     const searchStart = firstPaint || (
         performance.timing.domContentLoadedEventEnd - navigationStart);
